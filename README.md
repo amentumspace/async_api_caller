@@ -15,14 +15,15 @@ pip install .
 ```Python 
 url = "https://ocean.amentum.io/gebco"
 headers = {'API-Key': API_KEY}
-param_list = []
-
-for lon, lat in [[42,42], [42,43]]:
-
-    param_list.append({
-        "latitude": lat,
-        "longitude": lon
-    })
+param_list = [
+    {
+        "latitude": 42,
+        "longitude": 42
+    },{
+        "latitude": 43,
+        "longitude": 43
+    }
+]
 
 responses_json = async_api_requester.run(
     url, headers, param_list
