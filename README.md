@@ -12,7 +12,8 @@ pip install .
 
 ## Usage 
 
-```Python 
+```Python
+import async_api_caller
 url = "https://ocean.amentum.io/gebco"
 headers = {'API-Key': API_KEY}
 param_list = [
@@ -25,7 +26,7 @@ param_list = [
     }
 ]
 
-responses_json = async_api_requester.run(
+responses_json = async_api_caller.run(
     url, headers, param_list
 )
 ```
