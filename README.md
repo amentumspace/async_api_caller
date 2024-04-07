@@ -4,9 +4,10 @@ Making asynchronous web API calls using asyncio is complicated. This package abs
 
 ## Installation 
 
-Clone this repo. 
+Clone this repo, then: 
 
 ```bash
+cd async_api_caller/
 pip install . 
 ```
 
