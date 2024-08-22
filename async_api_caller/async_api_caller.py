@@ -53,7 +53,7 @@ def hash_key(url, params):
 
 
 # Makes the API call asynchronously
-async def fetch_data(session, url, params=None, headers=None, cache=None, ttl=3600):
+async def fetch_data(session, url, params=None, headers=None, cache=None, ttl=360000):
     
     # return cached response if present
     key = hash_key(url, params)
