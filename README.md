@@ -32,6 +32,10 @@ responses_json = async_api_caller.run(
 )
 ```
 
+## Caching
+
+To avoid making duplicate API calls to metered APIs, responses are automatically cached in a sqlite database `cache.db`. Delete the file to refresh it. 
+
 ## Sponsor 
 
 [Amentum Scientific](https://amentum.io)
