@@ -1,13 +1,72 @@
 import aiohttp
 import asyncio
+import json
+import hashlib
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+import sqlite3
+
+class SQLiteCache:
+    def __init__(self, db_name='cache.db'):
+        self.conn = sqlite3.connect(db_name)
+        self.create_table()
+
+    def create_table(self):
+        with self.conn:
+            self.conn.execute('''
+                CREATE TABLE IF NOT EXISTS cache (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    expires_at INTEGER
+                )
+            ''')
+
+    def get(self, key):
+        cur = self.conn.cursor()
+        cur.execute('SELECT value, expires_at FROM cache WHERE key=?', (key,))
+        row = cur.fetchone()
+        if row:
+            value, expires_at = row
+            if expires_at is None or expires_at > int(asyncio.get_event_loop().time()):
+                return json.loads(value)
+        return None
+
+    def set(self, key, value, ttl=None):
+        expires_at = int(asyncio.get_event_loop().time()) + ttl if ttl else None
+        with self.conn:
+            self.conn.execute('''
+                REPLACE INTO cache (key, value, expires_at)
+                VALUES (?, ?, ?)
+            ''', (key, json.dumps(value), expires_at))
+
+    def clear(self):
+        with self.conn:
+            self.conn.execute('DELETE FROM cache WHERE expires_at IS NOT NULL AND expires_at <= ?', (int(asyncio.get_event_loop().time()),))
+
+    def close(self):
+        self.conn.close()
+
+
+# Function to create a hash for the cache key
+def hash_key(url, params):
+    key = f"{url}_{json.dumps(params, sort_keys=True)}"
+    return hashlib.md5(key.encode()).hexdigest()
+
 
 # Makes the API call asynchronously
-async def fetch_data(session, url, params=None, headers=None):
+async def fetch_data(session, url, params=None, headers=None, cache=None, ttl=3600):
+    
+    # return cached response if present
+    key = hash_key(url, params)
+    if cache:
+        cached_response = cache.get(key)
+        if cached_response:
+            return params, cached_response
     try:
         async with session.get(url, params=params, headers=headers) as resp:
             resp.raise_for_status()  # Raises an exception for HTTP errors
             response_json = await resp.json()
+            if cache:
+                cache.set(key, response_json, ttl)
             return params, response_json
     except aiohttp.ClientError as e:
         print(f"Request failed: {e}")
@@ -15,6 +74,7 @@ async def fetch_data(session, url, params=None, headers=None):
 
 # A function that receives a url, header, and list of params that vary 
 async def main(url, headers, param_list):
+    cache = SQLiteCache()  # Initialize the custom SQLite cache
     async with aiohttp.ClientSession() as session:
         with Progress(
             SpinnerColumn(),
@@ -28,7 +88,7 @@ async def main(url, headers, param_list):
 
             tasks = []
             for params in param_list:
-                tasks.append(asyncio.create_task(fetch_data(session, url, params, headers)))
+                tasks.append(asyncio.create_task(fetch_data(session, url, params, headers, cache)))
 
             for task_future in asyncio.as_completed(tasks):
                 _ = await task_future
