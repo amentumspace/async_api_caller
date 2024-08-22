@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
 # Makes the API call asynchronously
 async def fetch_data(session, url, params=None, headers=None):
@@ -15,16 +16,31 @@ async def fetch_data(session, url, params=None, headers=None):
 # A function that receives a url, header, and list of params that vary 
 async def main(url, headers, param_list):
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_data(session, url, params, headers) for params in param_list]
-        result = await asyncio.gather(*tasks)
+        with Progress(
+            SpinnerColumn(),
+            "[progress.description]{task.description}",
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            TextColumn("[bold blue]{task.completed}/{task.total}")
+        ) as progress:
 
-        # Reorder according to original param_list
-        sorted_result = sorted(result, key=lambda x: param_list.index(x[0]))
-        
-        # Extract the sorted responses now
-        responses = [r[1] for r in sorted_result if r[1] is not None]
+            task = progress.add_task("Fetching data", total=len(param_list))
 
-        return responses
+            tasks = []
+            for params in param_list:
+                tasks.append(asyncio.create_task(fetch_data(session, url, params, headers)))
+
+            for task_future in asyncio.as_completed(tasks):
+                _ = await task_future
+                progress.update(task, advance=1)
+
+            # Reorder according to original param_list
+            sorted_result = sorted(tasks, key=lambda x: param_list.index(x.result()[0]))
+
+            # Extract the sorted responses now
+            responses = [r.result()[1] for r in sorted_result if r.result()[1] is not None]
+
+            return responses
 
 def run(url, headers, param_list):
     return asyncio.run(main(url, headers, param_list))
