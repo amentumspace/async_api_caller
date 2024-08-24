@@ -13,6 +13,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/amentumspace/async_api_caller.git",
     packages=setuptools.find_packages(),
-    install_requires=['aiohttp', 'asyncio', 'rich'],
+    install_requires=['aiohttp', 'asyncio', 'rich', 'numpy'],
 )
 

@@ -4,6 +4,7 @@ import json
 import hashlib
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 import sqlite3
+import numpy as np
 
 class SQLiteCache:
     def __init__(self, db_name='cache.db'):
@@ -46,11 +47,30 @@ class SQLiteCache:
         self.conn.close()
 
 
+def make_values_json_serializable(d):
+    return {key: make_json_serializable(value) for key, value in d.items()}
+
+def make_json_serializable(value):
+    if isinstance(value, np.integer):
+        return int(value)
+    elif isinstance(value, np.floating):
+        return float(value)
+    elif isinstance(value, np.ndarray):
+        return value.tolist()  # Convert NumPy arrays to lists
+    elif isinstance(value, (np.bool_, bool)):
+        return bool(value)  # Ensure boolean types are handled
+    elif isinstance(value, (np.str_, str)):
+        return str(value)
+    else:
+        return value
+    
 # Function to create a hash for the cache key
 def hash_key(url, params):
-    key = f"{url}_{json.dumps(params, sort_keys=True)}"
+    # required for numpy types in param list
+    params_serialisable = make_values_json_serializable(params)
+    params_json = json.dumps(params_serialisable, sort_keys=True)
+    key = f"{url}_{params_json}"
     return hashlib.md5(key.encode()).hexdigest()
-
 
 # Makes the API call asynchronously
 async def fetch_data(session, url, params=None, headers=None, cache=None, ttl=360000):
