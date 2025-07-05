@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="async_api_caller",
-    version="0.2.0",
+    version="0.3.0",
     author="https://amentum.io",
     author_email="team@amentum.space",
     description="Easily make asynchronous API web calls in Pythons",
