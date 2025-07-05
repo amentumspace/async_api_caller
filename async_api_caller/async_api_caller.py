@@ -104,3 +104,7 @@ async def main(url, headers, param_list):
 
 def run(url, headers, param_list):
     return asyncio.run(main(url, headers, param_list))
+
+# call this is need to run within a running event loop
+def create_task(url, headers, param_list):
+    return asyncio.create_task(main(url, headers, param_list))
